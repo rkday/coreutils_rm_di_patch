@@ -238,7 +238,9 @@ prompt (FTS const *fts, FTSENT const *ent, bool is_dir,
             break;
 
           case DT_DIR:
-            if (!x->recursive)
+            if (!x->recursive
+                && !(x->remove_empty_directories
+                     && is_empty_dir (fts->fts_cwd_fd, ent->fts_accpath)))
               {
                 write_protected = -1;
                 wp_errno = EISDIR;
