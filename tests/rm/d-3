@@ -1,6 +1,6 @@
 #!/bin/sh
-# Ensure that 'rm -d dir' (i.e., without --recursive) gives a reasonable
-# diagnostic when failing.
+# Ensure that 'rm -d -i dir' (i.e., without --recursive) gives a prompt and
+# then deletes the directory if it is empty
 
 # Copyright (C) 2012 Free Software Foundation, Inc.
 
