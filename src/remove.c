@@ -190,6 +190,16 @@ prompt (FTS const *fts, FTSENT const *ent, bool is_dir,
   int dirent_type = is_dir ? DT_DIR : DT_UNKNOWN;
   int write_protected = 0;
 
+  bool is_empty;
+  if (is_empty_p)
+    {
+      is_empty = is_empty_dir (fd_cwd, filename);
+      *is_empty_p = is_empty ? T_YES : T_NO;
+    }
+  else
+    is_empty = false;
+
+
   /* When nonzero, this indicates that we failed to remove a child entry,
      either because the user declined an interactive prompt, or due to
      some other failure, like permissions.  */
@@ -238,9 +248,11 @@ prompt (FTS const *fts, FTSENT const *ent, bool is_dir,
             break;
 
           case DT_DIR:
+             /* Unless we're either deleting directories or deleting
+              * recursively, we want to raise an EISDIR error rather than
+              * prompting the user  */
             if (!x->recursive
-                && !(x->remove_empty_directories
-                     && is_empty_dir (fts->fts_cwd_fd, ent->fts_accpath)))
+                && !(x->remove_empty_directories && is_empty))
               {
                 write_protected = -1;
                 wp_errno = EISDIR;
@@ -255,15 +267,6 @@ prompt (FTS const *fts, FTSENT const *ent, bool is_dir,
           error (0, wp_errno, _("cannot remove %s"), quoted_name);
           return RM_ERROR;
         }
-
-      bool is_empty;
-      if (is_empty_p)
-        {
-          is_empty = is_empty_dir (fd_cwd, filename);
-          *is_empty_p = is_empty ? T_YES : T_NO;
-        }
-      else
-        is_empty = false;
 
       /* Issue the prompt.  */
       if (dirent_type == DT_DIR
@@ -422,7 +425,8 @@ rm_fts (FTS *fts, FTSENT *ent, struct rm_options const *x)
         {
           /* This is the first (pre-order) encounter with a directory
              that we cannot delete.
-             Not recursive, so arrange to skip contents.  */
+             Not recursive, and it's not an empty directory (if we're removing
+             them)  so arrange to skip contents.  */
           int err = x->remove_empty_directories ? ENOTEMPTY : EISDIR;
           error (0, err, _("cannot remove %s"), quote (ent->fts_path));
           mark_ancestor_dirs (ent);
